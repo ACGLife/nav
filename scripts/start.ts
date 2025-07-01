@@ -20,6 +20,7 @@ import {
   PATHS,
   getConfig,
   fileWriteStream,
+  writePWA,
 } from './utils'
 import { replaceJsdelivrCDN } from '../src/utils/pureUtils'
 import type {
@@ -36,7 +37,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.tz.setDefault('Asia/Shanghai')
 
-const getWebs = (): INavProps[] => {
+const getNavs = (): INavProps[] => {
   try {
     const strings = fs.readFileSync(PATHS.db).toString().trim()
     if (!strings) throw new Error('empty')
@@ -59,7 +60,7 @@ const main = async () => {
   const configJson = getConfig()
   fs.writeFileSync(PATHS.configJson, JSON.stringify(configJson))
 
-  const db = getWebs()
+  const db = getNavs()
   let internal = {} as InternalProps
   let settings = {} as ISettings
   let tags: ITagPropValues[] = []
@@ -290,6 +291,25 @@ const main = async () => {
     } else {
       component.components.push(news)
     }
+    //
+    idx = component.components.findIndex(
+      (item) => item['type'] === ComponentType.Carousel,
+    )
+    const carousel = {
+      type: ComponentType.Carousel,
+      id: -ComponentType.Carousel,
+      imgs: [],
+      width: 220,
+      fit: 'cover',
+    }
+    if (idx >= 0) {
+      component.components[idx] = {
+        ...carousel,
+        ...component.components[idx],
+      }
+    } else {
+      component.components.push(carousel)
+    }
     fs.writeFileSync(PATHS.component, JSON.stringify(component))
   }
 
@@ -461,6 +481,10 @@ const main = async () => {
     settings.appDocTitle ||= ''
     settings.gitHubCDN ||= 'gcore.jsdelivr.net'
     settings.components ||= []
+
+    settings.pwaEnable ??= false
+    settings.pwaName ??= '发现导航'
+    settings.pwaIcon ||= ''
 
     // 替换CDN
     settings.favicon = replaceJsdelivrCDN(settings.favicon, settings)
